@@ -10,8 +10,12 @@ public class Main {
     private static Args resolveArgs(String[] a) {
         // TODO resolve args
         Args args = new Args();
-        args.setQps(3L);
-        args.setTestSeconds(30);
+        args.setQps(100L);
+        args.setTestSeconds(10);
+        HttpRequest request = new HttpRequest();
+        request.setMethod("GET");
+        request.setUrl("http://127.0.0.1:8080/helloReactor");
+        args.setHttpRequest(request);
         return args;
     }
 }

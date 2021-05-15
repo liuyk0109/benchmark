@@ -10,24 +10,24 @@ public class QpsLimiter {
 
     private static final Logger logger = LoggerFactory.getLogger(QpsLimiter.class);
 
-    private final long ns;
+    private final long qps;
     private final Control ctl;
     private final AtomicLong tokens = new AtomicLong();
     private final Object lock = new Object();
 
     public QpsLimiter(long qps, Control ctl) {
-        ns = (long) (1e9 / qps);
+        this.qps = qps;
         this.ctl = ctl;
     }
 
     public void startGenerateToken() {
         new Thread(() -> {
             while (ctl.isJobStart()) {
-                tokens.incrementAndGet();
-                ThreadUtils.sleep(TimeUnit.NANOSECONDS, ns);
+                tokens.addAndGet(qps);
+                ThreadUtils.sleep(TimeUnit.SECONDS, 1L);
             }
         }, "GenerateTokenThread").start();
-        logger.debug("Every {} ns to generate a token", ns);
+        logger.debug("Generate {} tokens per second", qps);
     }
 
     public boolean tryGetToken() {

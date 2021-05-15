@@ -2,44 +2,45 @@ package com.thelyk.benchmark;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import reactor.netty.http.client.HttpClient;
+import reactor.netty.resources.ConnectionProvider;
 
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 public class Benchmark {
 
     private static final Logger logger = LoggerFactory.getLogger(Benchmark.class);
 
-    private final ExecutorService jobThreadPool;
+    private final Args args;
     private final Counter counter;
     private final Control ctl;
     private final QpsLimiter limiter;
+    private final HttpRequest httpRequest;
+    private final HttpClient httpClient;
 
     public Benchmark(Args args) {
-        this.jobThreadPool = Executors.newCachedThreadPool();
+        this.args = args;
         this.counter = new Counter();
         this.ctl = new Control();
-        ctl.setTestSeconds(args.getTestSeconds());
         limiter = new QpsLimiter(args.getQps(), ctl);
+        httpRequest = args.getHttpRequest();
+        httpClient = HttpClient.create(ConnectionProvider.create("BenchmarkHttpClient", Integer.MAX_VALUE));
     }
 
     public void test() throws InterruptedException {
         logger.info("Start benchmark");
         Thread statisticsThread = new Thread(new Statistics(counter, ctl), "StatisticsThread");
-        Thread workThread = new Thread(new Job(jobThreadPool, counter, ctl, limiter), "WorkThread");
+        Thread workThread = new Thread(new Job(httpClient, counter, ctl, limiter, httpRequest), "WorkThread");
         ctl.startStatistics();
-        ctl.startJob();
-        ThreadUtils.sleep(TimeUnit.SECONDS, 1L);
+        ctl.startJob(args.getTestSeconds());
         statisticsThread.start();
         workThread.start();
         limiter.startGenerateToken();
 
         ctl.waitForJobsEnd();
         workThread.join();
-        jobThreadPool.shutdown();
-        while (!jobThreadPool.isTerminated()) {
-            jobThreadPool.awaitTermination(1L, TimeUnit.SECONDS);
+        while (counter.getTotalSend() != counter.getTotalRecv()) {
+            ThreadUtils.sleep(TimeUnit.SECONDS, 1L);
         }
         ctl.stopStatistics();
         statisticsThread.join();

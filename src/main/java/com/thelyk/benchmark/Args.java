@@ -4,7 +4,7 @@ public class Args {
 
     private long qps;
     private long testSeconds;
-    private String url;
+    private HttpRequest httpRequest;
 
     public long getQps() {
         return qps;
@@ -22,11 +22,11 @@ public class Args {
         this.testSeconds = testSeconds;
     }
 
-    public String getUrl() {
-        return url;
+    public HttpRequest getHttpRequest() {
+        return httpRequest;
     }
 
-    public void setUrl(String url) {
-        this.url = url;
+    public void setHttpRequest(HttpRequest httpRequest) {
+        this.httpRequest = httpRequest;
     }
 }

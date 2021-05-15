@@ -12,22 +12,27 @@ public class Control {
     private final Object lock = new Object();
     private volatile boolean jobStart;
     private volatile boolean statisticsStart;
-    private long testSeconds;
+    private volatile long jobStartNanoTime;
+    private volatile long jobStopNanoTime;
+    private volatile long statisticsStartNanoTime;
+    private volatile long statisticsStopNanoTime;
 
     public boolean isJobStart() {
         return jobStart;
     }
 
-    public void startJob() {
+    public void startJob(long testSeconds) {
         Thread thread = new Thread(() -> {
-            logger.info(String.format("Sleep %d seconds then end jobs", testSeconds));
+            logger.info("Sleep {} seconds then end jobs", testSeconds);
             ThreadUtils.sleep(TimeUnit.SECONDS, testSeconds);
             jobStart = false;
+            jobStopNanoTime = System.nanoTime();
             synchronized (lock) {
                 lock.notifyAll();
             }
         }, "JobWaitThread");
         jobStart = true;
+        jobStartNanoTime = System.nanoTime();
         logger.info("Start jobs");
         thread.start();
     }
@@ -38,7 +43,6 @@ public class Control {
                 try {
                     logger.info("Wait for jobs end");
                     lock.wait();
-                    logger.info("Jobs end");
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
                     logger.error(e.getMessage(), e);
@@ -53,13 +57,25 @@ public class Control {
 
     public void startStatistics() {
         statisticsStart = true;
+        statisticsStartNanoTime = System.nanoTime();
     }
 
     public void stopStatistics() {
         statisticsStart = false;
+        statisticsStopNanoTime = System.nanoTime();
     }
 
-    public void setTestSeconds(long testSeconds) {
-        this.testSeconds = testSeconds;
+    public long jobDurationNano() {
+        if (jobStart) {
+            return -1;
+        }
+        return jobStopNanoTime - jobStartNanoTime;
+    }
+
+    public long statisticsDurationNano() {
+        if (statisticsStart) {
+            return -1;
+        }
+        return statisticsStopNanoTime - statisticsStartNanoTime;
     }
 }
