@@ -13,7 +13,6 @@ public class QpsLimiter {
     private final long qps;
     private final Control ctl;
     private final AtomicLong tokens = new AtomicLong();
-    private final Object lock = new Object();
 
     public QpsLimiter(long qps, Control ctl) {
         this.qps = qps;
@@ -31,14 +30,12 @@ public class QpsLimiter {
     }
 
     public boolean tryGetToken() {
-        if (tokens.get() > 0) {
-            synchronized (lock) {
-                if (tokens.get() > 0) {
-                    tokens.decrementAndGet();
-                    return true;
-                }
-            }
+        long counts = tokens.decrementAndGet();
+        if (counts >= 0) {
+            return true;
+        } else {
+            tokens.incrementAndGet();
+            return false;
         }
-        return false;
     }
 }
