@@ -4,7 +4,7 @@ import io.netty.handler.codec.http.HttpMethod;
 
 public class HttpRequest {
 
-    private HttpMethod method;
+    private HttpMethod method = HttpMethod.GET;
     private String url;
 
     public HttpMethod getMethod() {

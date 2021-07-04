@@ -30,8 +30,6 @@ public class Job implements Runnable {
         while (ctl.isJobStart()) {
             if (limiter.tryGetToken()) {
                 doJob();
-//                counter.incrSend();
-//                counter.incrRecv();
             }
         }
         logger.info("Stop send");
