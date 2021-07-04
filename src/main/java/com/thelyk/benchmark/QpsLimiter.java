@@ -22,7 +22,7 @@ public class QpsLimiter {
     public void startGenerateToken() {
         new Thread(() -> {
             while (ctl.isJobStart()) {
-                tokens.addAndGet(qps);
+                tokens.set(qps);
                 ThreadUtils.sleep(TimeUnit.SECONDS, 1L);
             }
         }, "GenerateTokenThread").start();
