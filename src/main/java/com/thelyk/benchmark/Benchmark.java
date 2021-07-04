@@ -1,11 +1,12 @@
 package com.thelyk.benchmark;
 
+import java.util.concurrent.TimeUnit;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 import reactor.netty.http.client.HttpClient;
 import reactor.netty.resources.ConnectionProvider;
-
-import java.util.concurrent.TimeUnit;
 
 public class Benchmark {
 
@@ -24,7 +25,10 @@ public class Benchmark {
         this.ctl = new Control();
         limiter = new QpsLimiter(args.getQps(), ctl);
         httpRequest = args.getHttpRequest();
-        httpClient = HttpClient.create(ConnectionProvider.create("BenchmarkHttpClient", Integer.MAX_VALUE));
+        ConnectionProvider provider = ConnectionProvider.builder("BenchmarkHttpClient")
+                .maxConnections(1000)
+                .build();
+        httpClient = HttpClient.create(provider);
     }
 
     public void test() throws InterruptedException {
@@ -33,9 +37,9 @@ public class Benchmark {
         Thread workThread = new Thread(new Job(httpClient, counter, ctl, limiter, httpRequest), "WorkThread");
         ctl.startStatistics();
         ctl.startJob(args.getTestSeconds());
+        limiter.startGenerateToken();
         statisticsThread.start();
         workThread.start();
-        limiter.startGenerateToken();
 
         ctl.waitForJobsEnd();
         workThread.join();
